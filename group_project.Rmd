@@ -1,0 +1,357 @@
+---
+title: "group_project"
+output: pdf_document
+---
+
+```{r}
+library(pacman)
+p_load(tidyverse, dplyr, magrittr, tidymodels, modeldata, skimr, 
+       janitor, kknn, tune, ggplot2, glmnet, dummies, lattice, lubridate)
+```
+
+```{r}
+texas <- read.csv("~/Desktop/UO/Spring2021/EC510crime/group_project/texas.csv")
+```
+
+```{r}
+texas_1 <- texas %>% clean_names()
+```
+
+```{r}
+texas_2 <- texas_1 %>% 
+  pivot_longer(-country, names_to = "date", values_to = "new_cases")
+texas_2
+```
+
+```{r}
+texas_3 <- texas_2 %>%
+  mutate(new_date = str_remove_all(date, "new_cases_")) %>%
+  mutate(new_date_2 = str_remove_all(new_date, "_")) %>%
+  select(-date)
+
+texas_3
+  
+```
+
+```{r}
+cccc <- as.factor(texas_3$new_date_2)
+new_date_3 <- as.Date(cccc, format = "%m%d%y")
+```
+
+```{r}
+texas_4 <- texas_3 %>%
+  mutate(new_date_3) %>%
+  select(-new_date) %>%
+  select(-new_date_2)
+
+texas_4
+```
+
+
+```{r}
+texas_5 <-texas_4
+texas_5$new_date <- floor_date(new_date_3, "week")
+```
+
+```{r}
+texas_6 <- texas_4 %>%
+  mutate(new_format = ymd(texas_4$new_date_3))
+texas_6
+```
+
+
+
+```{r}
+new_modified_texas <- read.csv("~/Desktop/UO/Spring2021/EC510crime/group_project/new_modified.csv")
+```
+
+
+```{r}
+new_modified_texas <- new_modified_texas %>%
+  mutate(new_date_4 = ymd(new_modified_texas$new_date_3))
+```
+
+
+
+
+
+```{r}
+graph_2<- ggplot(new_modified_texas, aes(x=new_date_4, y=new_cases)) + 
+  geom_line(group = 1, col = "steelblue") +
+  scale_y_continuous(labels = scales::comma) +
+  scale_color_brewer(palette = "Paired") + 
+  xlab("Date") + 
+  ylab("Daily New Cases") +
+  ggtitle("Daily New Covid-19 Cases in Houston") + 
+  theme_bw() +
+  theme(plot.title = element_text(color = "black", size = 15),
+        axis.text = element_text(colour='black', size = 8),
+        axis.title = element_text(colour='black', size = 12)) + 
+  scale_x_date(date_breaks = "6 weeks", date_labels = "%m-%d-%y")
+  
+graph_2
+```
+
+
+```{r}
+crime_df <- read.csv("~/Desktop/UO/Spring2021/EC510crime/group_project/crime.csv")
+```
+
+```{r}
+crime_df %<>% clean_names()
+```
+
+
+```{r}
+date_1 <- as.Date(crime_df$occurrence_date, format = "%m/%d/%Y") 
+```
+
+```{r}
+crime_df$month <- floor_date(date_1, "month")
+crime_df
+```
+
+```{r}
+ggplot(data = crime_df, mapping = aes(x = month)) + 
+  geom_bar(stat_bin = 5, fill = "steelblue") + 
+  scale_fill_brewer(palette="Dark2") +
+  xlab("Crime in 2020") + 
+  ylab("Counts") + 
+  labs(title = "Houston Crime Cases in 2020") + 
+  geom_text(stat='count', aes(label=..count..), vjust=-1, size = 3) + 
+  scale_x_date(date_labels = "%m/%Y") +
+  theme_classic() +
+  theme(plot.title = element_text(color = "black", size = 15),
+        axis.text = element_text(colour='black', size = 8),
+        axis.title = element_text(colour='black', size = 12))
+```
+
+```{r}
+crime_new <- crime_df %>%
+  group_by(occurrence_date) %>%
+  mutate(daily_crime = sum(offense_count))
+```
+
+
+```{r}
+crime_covid <- new_modified_texas %>%
+  select(-country, -new_date_3)
+
+
+crime_new_1 <- crime_new %>%
+  select(occurrence_date, daily_crime)
+
+crime_new_1$occurrence_date <- as.Date(crime_new_1$occurrence_date, format = "%m/%d/%Y") 
+```
+
+
+```{r}
+crime_new_1 <- crime_new_1[!duplicated(crime_new_1$occurrence_date), ]
+```
+
+
+
+```{r}
+write.csv(crime_new_1,"~/Desktop/UO/Spring2021/EC510crime/group_project/texas/crime_new_1.csv", row.names = FALSE)
+
+```
+
+```{r}
+write.csv(crime_covid,"~/Desktop/UO/Spring2021/EC510crime/group_project/texas/crime_covid.csv", row.names = FALSE)
+```
+
+
+```{r}
+crime_and_covid <- read.csv("~/Desktop/UO/Spring2021/EC510crime/group_project/texas/crime_and_covid.csv")
+```
+
+```{r}
+crime_reg1 <- lm(daily_crime ~ new_cases, data = crime_and_covid)
+
+summary(crime_reg1)
+```
+
+
+```{r}
+ggplot(crime_and_covid, aes(x = new_cases, y = daily_crime)) +
+  geom_point() +
+  theme_bw(base_size=8) +
+  scale_color_brewer(palette = "Dark2") +
+  labs(title = "Crime Situation",
+       x = "Covid-19", 
+       y = "Crime") +
+  theme(plot.title = element_text(color = "black", size = 15),
+        axis.title = element_text(colour='black', size = 15),
+        legend.text = element_text(size = 10),
+        legend.position = "top",
+        legend.title = element_blank())
+```
+
+
+
+
+# Crime and House price
+
+
+```{r}
+crime <- read.csv("~/Desktop/UO/Spring2021/EC510crime/group_project/LA/crime.csv")
+```
+
+
+```{r}
+crime <- crime %>% 
+  pivot_longer(X1993:X2019, names_to = "year", values_to = "value")
+```
+
+```{r}
+crime <- crime %>% 
+  mutate(year = as.integer(gsub("X", "", year))) %>%
+  select(Crime, year, value)
+```
+
+
+```{r}
+crime <- crime %>%
+  pivot_wider(names_from = Crime, values_from = value)
+
+```
+
+
+```{r}
+crime %<>% clean_names()
+```
+
+
+```{r}
+crime <- crime %>%
+  mutate(value = as.integer(gsub(",", "", value)))
+```
+
+
+```{r}
+ggplot(crime, aes(x = year, y = value)) +
+  geom_line(aes(col = crime)) +
+  theme_bw(base_size=8) +
+  scale_color_brewer(palette = "Dark2") +
+  labs(title = "Crime Situation",
+       x = "Year", 
+       y = "Total Crime in LA") +
+  theme(plot.title = element_text(color = "black", size = 15),
+        axis.title = element_text(colour='black', size = 15),
+        legend.text = element_text(size = 10),
+        legend.position = "top",
+        legend.title = element_blank())
+```
+
+
+
+### New data
+
+
+```{r}
+all_data <- read.csv("~/Desktop/UO/Spring2021/EC510crime/group_project/LA/new_crime_all.csv")
+```
+
+```{r}
+all_data <- all_data %>% 
+  mutate(sex_offenses = as.integer(gsub(",", "", sex_offenses))) %>%
+  mutate(felony = as.integer(gsub(",", "", felony))) %>%
+  mutate(violent_offenses = as.integer(gsub(",", "", violent_offenses))) %>%
+  mutate(property_offenses = as.integer(gsub(",", "", property_offenses))) %>%
+  mutate(drug_offenses = as.integer(gsub(",", "", drug_offenses))) %>%
+  mutate(other_offenses = as.integer(gsub(",", "", other_offenses))) %>%
+  mutate(misdemeanor = as.integer(gsub(",", "", misdemeanor))) %>%
+  mutate(status_offenses = as.integer(gsub(",", "", status_offenses))) 
+```
+
+```{r}
+reg1 <- lm(felony ~ unemployment, data = all_data)
+summary(reg1)
+```
+
+
+```{r}
+all_data <- all_data %>%
+  group_by(year, unemployment, house_price) %>%
+  mutate(total = sum(felony, violent_offenses, property_offenses, drug_offenses, sex_offenses, other_offenses, misdemeanor, status_offenses))
+```
+
+```{r}
+write.csv(all_data,"~/Desktop/UO/Spring2021/EC510crime/group_project/LA/new_crime_all_cleaned.csv", row.names = FALSE)
+```
+
+
+```{r}
+ggplot(all_data, aes(x = year, y = unemployment)) +
+  geom_line(col = "red") +
+  theme_classic(base_size=8) +
+  labs(title = "Unemployment Situation",
+       x = "Year", 
+       y = "Unemployment") +
+  theme(plot.title = element_text(color = "black", size = 15),
+        axis.title = element_text(colour='black', size = 15),
+        axis.text = element_text(colour='black', size = 8))
+```
+
+
+```{r}
+ggplot(all_data, aes(x = year, y = house_price)) +
+  geom_line(col = "red") +
+  theme_bw(base_size=8) +
+  labs(title = "House Price Situation",
+       x = "Year", 
+       y = "House Price") +
+  theme(plot.title = element_text(color = "black", size = 15),
+        axis.title = element_text(colour='black', size = 15),
+        axis.text = element_text(colour='black', size = 8))
+```
+
+
+
+
+
+```{r}
+ggplot(all_data, aes(x = unemployment, y = total)) +
+  geom_point(col = "red") +
+  theme_bw(base_size=8) +
+  labs(title = "Total Crime VS Unemplayment",
+       x = "Unemployment", 
+       y = "Total Crime in LA") +
+  theme(plot.title = element_text(color = "black", size = 15),
+        axis.title = element_text(colour='black', size = 15),
+        axis.text = element_text(colour='black', size = 8)) +
+  geom_smooth()
+```
+
+
+
+```{r}
+ggplot(all_data, aes(x = house_price, y = total)) +
+  geom_point(col = "red") +
+  theme_bw(base_size=8) +
+  labs(title = "Total Crime VS House Price",
+       x = "House Price", 
+       y = "Total Crime in LA") +
+  theme(plot.title = element_text(color = "black", size = 15),
+        axis.title = element_text(colour='black', size = 15),
+        axis.text = element_text(colour='black', size = 8)) +
+  geom_smooth()
+```
+
+
+```{r}
+all_data_no_2019 <- all_data %>%
+  filter(year<2019)
+
+
+reg_pred <- lm(data = all_data_no_2019, total~house_price)
+summary(reg_pred)
+```
+
+```{r}
+pred_house_price <- data.frame(house_price=c(270.19))
+pred_1 = predict(reg_pred, newdata = pred_house_price)
+pred_1
+```
+
+
