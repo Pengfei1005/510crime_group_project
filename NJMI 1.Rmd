@@ -1,0 +1,95 @@
+---
+title: "Gambling"
+author: "Zhichao Shan"
+date: "2021/5/16"
+output: html_document
+---
+```{r}
+library(pacman)
+p_load(readr,dplyr,stargazer,sandwich,tidyverse,broom)
+setwd("C:/Users/Alienware/Desktop/EC/EC510_crime/Rwork/EC510_crime")
+gamble <- read.csv('Gambling_NJ_MI.csv')
+```
+
+```{r}
+#create dummy variable year over 2013
+gamble <- mutate(gamble, after = ifelse(gamble$Year>=2013, 1, 0))
+```
+
+```{r}
+#create dummy variable for interation effect
+gamble <- mutate(gamble, treatafter = after*Treat)
+summary(gamble)
+```
+
+```{r}
+treated <- subset(gamble, gamble$Treat==1)
+summary(treated)
+```
+
+```{r}
+#just use this one(two line)
+ge <- ggplot(gamble, aes(x=Year, y=Murder)) +  geom_point(aes(colour = Treat), size =2) +
+  geom_vline(xintercept = 2013, lty = 4)
+ge <- ge + labs(title = "Murder and Time", x = "Year", y = "Murder")
+ge + geom_line(aes(colour = Treat, group = Treat))
+```
+
+```{r}
+ge_nmM <- lm(Murder ~ Treat+after+treatafter+Year+Population, data=gamble)
+tidy(ge_nmM)
+```
+
+
+```{r}
+ge_p <- ggplot(gamble, aes(x=Year, y=Property)) +  geom_point(aes(colour = Treat), size =2) +
+  geom_vline(xintercept = 2013, lty = 4)
+ge_p <- ge_p + labs(title = "Property and Time", x = "Year", y = "Property")
+ge_p + geom_line(aes(colour = Treat, group = Treat))
+```
+
+```{r}
+ge_nmP <- lm(Property ~ Treat+after+treatafter+Year+Population, data=gamble)
+tidy(ge_nmP)
+```
+
+
+```{r}
+ge_r <- ggplot(gamble, aes(x=Year, y=Robbery)) +  geom_point(aes(colour = Treat), size =2) +
+  geom_vline(xintercept = 2013, lty = 4)
+ge_r <- ge_r + labs(title = "Robbery and Time", x = "Year", y = "Robbery")
+ge_r + geom_line(aes(colour = Treat, group = Treat))
+```
+
+```{r}
+ge_nmR <- lm(Robbery ~ Treat+after+treatafter+Year+Population, data=gamble)
+tidy(ge_nmR)
+```
+
+
+```{r}
+ge_t <- ggplot(gamble, aes(x=Year, y=Larcency_Theft)) +  geom_point(aes(colour = Treat), size =2) +
+  geom_vline(xintercept = 2013, lty = 4)
+ge_t <- ge_t + labs(title = "Theft and Time", x = "Year", y = "Theft")
+ge_t + geom_line(aes(colour = Treat, group = Treat))
+```
+
+```{r}
+ge_nmT <- lm(Larcency_Theft ~ Treat+after+treatafter+Year+Population, data=gamble)
+tidy(ge_nmT)
+```
+
+
+```{r}
+ge_index <- lm(Index ~ Treat+after+treatafter+Year+Population, data=gamble)
+tidy(ge_index)
+```
+
+```{r}
+ge_I <- ggplot(gamble, aes(x=Year, y=Index)) +  geom_point(aes(colour = Treat), size =2) +
+  geom_vline(xintercept = 2013, lty = 4)
+ge_I <- ge_I + labs(title = "Index and Time", x = "Year", y = "Index")
+ge_I + geom_line(aes(colour = Treat, group = Treat))
+```
+
+
